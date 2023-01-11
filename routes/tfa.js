@@ -5,21 +5,20 @@ const commons = require('./commons');
 const router = express.Router();
 
 router.post('/tfa/setup', (req, res) => {
-    console.log(`DEBUG: Received TFA setup request`);
 
     const secret = speakeasy.generateSecret({
         length: 10,
-        name: commons.userObject.uname,
+        name: req.body.uname,
         issuer: 'SahandSamanehPortal'
     });
     var url = speakeasy.otpauthURL({
         secret: secret.base32,
-        label: commons.userObject.uname,
+        label: req.body.uname,
         issuer: 'SahandSamanehPortal',
         encoding: 'base32'
     });
     QRCode.toDataURL(url, (err, dataURL) => {
-        commons.userObject.tfa = {
+        commons.userObject.get(req.body.uname).tfa  = {
             secret: '',
             tempSecret: secret.base32,
             dataURL,
@@ -35,14 +34,10 @@ router.post('/tfa/setup', (req, res) => {
 });
 
 router.get('/tfa/setup', (req, res) => {
-    console.log(`DEBUG: Received FETCH TFA request`);
-
     res.json(commons.userObject.tfa ? commons.userObject.tfa : null);
 });
 
 router.delete('/tfa/setup', (req, res) => {
-    console.log(`DEBUG: Received DELETE TFA request`);
-
     delete commons.userObject.tfa;
     res.send({
         "status": 200,
@@ -51,30 +46,33 @@ router.delete('/tfa/setup', (req, res) => {
 });
 
 router.post('/tfa/verify', (req, res) => {
-    console.log(`DEBUG: Received TFA Verify request`);
+    if (commons.userObject.has(req.body.user)){
 
-    let isVerified = speakeasy.totp.verify({
-        secret: commons.userObject.tfa.tempSecret,
-        encoding: 'base32',
-        token: req.body.token
-    });
-
-    if (isVerified) {
-        console.log(`DEBUG: TFA is verified to be enabled`);
-
-        commons.userObject.tfa.secret = commons.userObject.tfa.tempSecret;
+        let isVerified = speakeasy.totp.verify({
+            secret: commons.userObject.get(req.body.user).tfa.tempSecret,
+            encoding: 'base32',
+            token: req.body.token
+        });
+    
+        if (isVerified) {
+            commons.userObject.get(req.body.user).tfa.secret = commons.userObject.get(req.body.user).tfa.tempSecret;
+            return res.send({
+                "status": 200,
+                "message": "Two-factor Auth is enabled successfully"
+            });
+        }
+    
         return res.send({
-            "status": 200,
-            "message": "Two-factor Auth is enabled successfully"
+            "status": 403,
+            "message": "Invalid Auth Code, verification failed. Please verify the system Date and Time"
         });
     }
-
-    console.log(`ERROR: TFA is verified to be wrong`);
-
-    return res.send({
-        "status": 403,
-        "message": "Invalid Auth Code, verification failed. Please verify the system Date and Time"
-    });
+    else{
+        return res.send({
+            "status": 111,
+            "message": "Invalid userName, verification failed. User has not registered for authentication."
+        });
+    }
 });
 
 module.exports = router;

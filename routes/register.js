@@ -3,7 +3,6 @@ const commons = require('./commons');
 const router = express.Router();
 
 router.post('/register', (req, res) => {
-    console.log(`DEBUG: Received request to register user`);
 
     const result = req.body;
 
@@ -14,9 +13,7 @@ router.post('/register', (req, res) => {
         });
     }
 
-    commons.userObject.uname = result.uname;
-    commons.userObject.upass = result.upass;
-    delete commons.userObject.tfa;
+    commons.userObject.set(result.uname,{'userPass': result.upass});
 
     return res.send({
         "status": 200,

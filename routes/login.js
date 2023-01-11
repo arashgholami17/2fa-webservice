@@ -4,20 +4,15 @@ const commons = require('./commons');
 const router = express.Router();
 
 router.post('/login', (req, res) => {
-    console.log(`DEBUG: Received login request`);
-
     if (commons.userObject.uname && commons.userObject.upass) {
         if (!commons.userObject.tfa || !commons.userObject.tfa.secret) {
             if (req.body.uname == commons.userObject.uname && req.body.upass == commons.userObject.upass) {
-                console.log(`DEBUG: Login without TFA is successful`);
 
                 return res.send({
                     "status": 200,
                     "message": "success"
                 });
             }
-            console.log(`ERROR: Login without TFA is not successful`);
-
             return res.send({
                 "status": 403,
                 "message": "Invalid username or password"
@@ -25,7 +20,6 @@ router.post('/login', (req, res) => {
 
         } else {
             if (req.body.uname != commons.userObject.uname || req.body.upass != commons.userObject.upass) {
-                console.log(`ERROR: Login with TFA is not successful`);
 
                 return res.send({
                     "status": 403,
@@ -33,7 +27,6 @@ router.post('/login', (req, res) => {
                 });
             }
             if (!req.headers['x-tfa']) {
-                console.log(`WARNING: Login was partial without TFA header`);
 
                 return res.send({
                     "status": 206,
@@ -47,14 +40,12 @@ router.post('/login', (req, res) => {
             });
 
             if (isVerified) {
-                console.log(`DEBUG: Login with TFA is verified to be successful`);
 
                 return res.send({
                     "status": 200,
                     "message": "success"
                 });
             } else {
-                console.log(`ERROR: Invalid AUTH code`);
 
                 return res.send({
                     "status": 206,
